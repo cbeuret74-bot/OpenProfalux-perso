@@ -1,6 +1,31 @@
 # OpenProfalux
 
-Fork personnel de https://github.com/Shad107/OpenProfalux avec mes adaptations pour une installation multi-volets. Projet et guide d'origine : https://www.isno.fr/projets/openprofalux
+> Fork personnel de [Shad107/OpenProfalux](https://github.com/Shad107/OpenProfalux) avec mes adaptations pour une installation multi-volets (11+ volets). Projet et guide d'origine : https://www.isno.fr/projets/openprofalux
+
+## Mes modifications
+
+Adaptations apportées au firmware d'origine pour fiabiliser une installation avec un grand nombre de volets. Toutes côté `firmware/`.
+
+### Capacité & persistance
+- **Partition NVS agrandie à 80 Ko** (`partitions.csv`, contre 16 Ko d'origine) : les apps OTA sont décalées à `0x20000`, l'espace récupéré sur le SPIFFS. Permet de stocker la configuration jusqu'aux 24 volets max du firmware sans saturer la flash.
+- **Configuration stockée en blob NVS** au lieu d'une chaîne (`shutters.c`) : lève le plafond des ~4000 octets de `nvs_set_str` qui empêchait de dépasser ~9 volets. Migration automatique depuis l'ancien format string, avec contrôle d'erreur explicite (fini les échecs de sauvegarde silencieux).
+- **Buffer JSON `/api/status` porté à 16 Ko** (`web_ui.c`) : évite la troncature de la liste des volets dans l'UI web au-delà de ~9 volets.
+
+### Fiabilité radio
+- **Émission TX protégée par section critique** (`cc1101.c`) : chaque trame OOK est émise sans préemption par le WiFi/l'ordonnanceur, ce qui supprime les commandes perdues aléatoires. Le gap inter-trame reste hors section critique pour laisser respirer le WiFi.
+- **Cible de compilation forcée sur `external`** (`sdkconfig.defaults`) : corrige le brochage (le `sdkconfig` généré partait parfois sur la cible m5stack, ce qui empêchait toute émission).
+
+### Stabilité système
+- **Vérification OTA périodique GitHub retirée** (`shutters.c`) : supprime le pic mémoire TLS qui faisait décrocher le WiFi et MQTT toutes les quelques minutes sur signal faible.
+- **Pause du rafraîchissement automatique pendant l'édition** (`web/app.js`) : la page ne recharge plus le statut tant qu'un champ est en cours de saisie, ce qui rend la calibration utilisable.
+
+### Réglages par défaut ajustés
+- Gain RX par défaut : `0x2F` (gain réduit) pour limiter le décodage du bruit ambiant en écoute permanente.
+- `PRESS_REPEATS = 18` trames par appui (robustesse d'émission).
+
+---
+
+*Note : ces modifications sont propres à mon installation. Le travail de base — capture/rejeu KeeLoq, enrôlement virtuel, UI web, intégration Home Assistant — est celui de l'auteur original.*
 
 **Piloter ses volets roulants Profalux depuis Home Assistant avec un ESP32 à ~15 €, sans la clé constructeur.**
 
