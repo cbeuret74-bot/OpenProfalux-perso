@@ -1,5 +1,7 @@
 # OpenProfalux
 
+Fork personnel de https://github.com/Shad107/OpenProfalux avec mes adaptations pour une installation multi-volets. Projet et guide d'origine : https://www.isno.fr/projets/openprofalux
+
 **Piloter ses volets roulants Profalux depuis Home Assistant avec un ESP32 à ~15 €, sans la clé constructeur.**
 
 Firmware ESP32 + CC1101 open-source pour les volets **Profalux 868 MHz** (moteurs MAI-EMPX /
