@@ -196,6 +196,8 @@
             <span class="lbl">Écoute RF permanente<small>Active le RF debug en direct, le suivi de position via la vraie télécommande et le dataset MQTT. Désactivée = radio libre (moins de bruit).</small></span></label>
           <label class="switch"><input type="checkbox" id="sys-debug"><span class="track"></span>
             <span class="lbl">Debug console<small>Logge chaque capture RX dans la console série (symboles, RSSI, bits, KeeLoq ou non). Pour diagnostiquer « ça ne capte pas ». À laisser OFF en usage normal (verbeux).</small></span></label>
+          <label class="switch"><input type="checkbox" id="sys-netlog"><span class="track"></span>
+            <span class="lbl">Débogage réseau (log Wi-Fi)<small>Diffuse les logs sur le réseau (port 2323) pour les voir depuis un PC/téléphone sans câble USB (Termius en Telnet, ou nc). À couper en usage normal.</small></span></label>
           <div class="field" style="margin-top:12px"><label>Gain RX (AGCCTRL2) - réglage de diagnostic réception</label>
             <select id="sys-rxgain">
               <option value="7">0x07 - gain max (le plus sensible, mais capte le bruit)</option>

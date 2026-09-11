@@ -107,7 +107,7 @@ static esp_err_t h_js   (httpd_req_t *r) { return send_asset(r, "application/jav
 
 /* ── /api/status ── */
 static esp_err_t h_status(httpd_req_t *r) {
-    static char buf[4096];
+    static char buf[16384];
     int n = shutters_status_json(buf, sizeof(buf));
     httpd_resp_set_type(r, "application/json");
     return httpd_resp_send(r, buf, n > 0 ? n : 0);
@@ -244,7 +244,7 @@ static void cfg_get(nvs_handle_t h, const char *k, char *out, size_t cap) {
 }
 static esp_err_t h_config_get(httpd_req_t *r) {
     char dev[32] = "", ssid[33] = "", uri[160] = "", user[128] = "", pass[256] = "";
-    uint8_t logf = 0, dbg = 0, rg = 0x27;
+    uint8_t logf = 0, dbg = 0, rg = 0x27, netl = 0;
     uint32_t txte = 455;
     nvs_handle_t h;
     if (nvs_open("cfg", NVS_READONLY, &h) == ESP_OK) {
@@ -257,11 +257,11 @@ static esp_err_t h_config_get(httpd_req_t *r) {
         uint32_t t; if (nvs_get_u32(h, "tx_te", &t) == ESP_OK && t) txte = t;
         nvs_close(h);
     }
-    char out[512];
+    char out[640];
     snprintf(out, sizeof(out),
              "{\"device\":\"%s\",\"wifi_ssid\":\"%s\",\"mqtt_uri\":\"%s\",\"mqtt_user\":\"%s\","
-             "\"mqtt_user_len\":%d,\"mqtt_pass_len\":%d,\"log_frames\":%d,\"debug\":%d,\"rx_gain\":%d,\"tx_te\":%u}",
-             dev, ssid, uri, user, (int)strlen(user), (int)strlen(pass), logf ? 1 : 0, dbg ? 1 : 0, rg, (unsigned)txte);
+             "\"mqtt_user_len\":%d,\"mqtt_pass_len\":%d,\"log_frames\":%d,\"debug\":%d,\"netlog\":%d,\"rx_gain\":%d,\"tx_te\":%u}",
+             dev, ssid, uri, user, (int)strlen(user), (int)strlen(pass), logf ? 1 : 0, dbg ? 1 : 0, netl ? 1 : 0, rg, (unsigned)txte);
     memset(pass, 0, sizeof(pass));   /* on n'oublie pas d'effacer le mdp de la pile */
     httpd_resp_set_type(r, "application/json");
     httpd_resp_sendstr(r, out);

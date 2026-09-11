@@ -20,6 +20,9 @@
 #include <driver/rmt_rx.h>
 
 static const char *TAG = "cc1101";
+
+static portMUX_TYPE s_tx_mux = portMUX_INITIALIZER_UNLOCKED;
+
 /* ── Switch DEBUG capture RX (runtime, togglable depuis l'UI/MQTT) ──────────
  * Quand ON : logge CHAQUE paquet capte en ecoute (symboles RMT + RSSI + bits
  * decodes + classification KeeLoq), y compris les trames <64 bits normalement
@@ -299,6 +302,7 @@ int cc1101_tx_raw_bits(const char *bits, int n, int repeats) {
     const uint32_t te = s_tx_te, te2 = 2 * s_tx_te;
     const uint32_t hdr = (uint32_t)((uint64_t)PROFALUX_HEADER_US * s_tx_te / PROFALUX_TE_US);
     for (int r = 0; r < repeats; r++) {
+        taskENTER_CRITICAL(&s_tx_mux);   /* trame emise sans preemption WiFi/ordonnanceur */
         for (int i = 0; i < PROFALUX_PREAMBLE_ELEMENTS; i++) {
             gpio_set_level(CC1101_PIN_GDO0, (i & 1) == 0);
             esp_rom_delay_us(te);
@@ -312,7 +316,8 @@ int cc1101_tx_raw_bits(const char *bits, int n, int repeats) {
                                   gpio_set_level(CC1101_PIN_GDO0, 0); esp_rom_delay_us(te); }
         }
         gpio_set_level(CC1101_PIN_GDO0, 0);
-        esp_rom_delay_us(2000);   /* gap inter-trame */
+        taskEXIT_CRITICAL(&s_tx_mux);    /* le WiFi respire pendant le gap inter-trame */
+        esp_rom_delay_us(2000);          /* gap inter-trame (hors section critique) */
     }
     strobe(CC_SIDLE);
     if (s_cap) rmt_enable(s_cap);   /* re-arme la capture RMT pour l'ecoute permanente suivante */

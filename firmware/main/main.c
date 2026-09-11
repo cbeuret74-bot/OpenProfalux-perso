@@ -32,7 +32,7 @@
 static const char *TAG = "main";
 static bool s_log_frames = false;   /* option UI "capture toutes les trames" (namespace cfg) */
 static bool s_debug      = false;   /* switch UI "debug console" : logge chaque capture RX */
-static uint8_t s_rx_gain = 0x27;    /* plafond de gain RX (AGCCTRL2) reglable via l'UI ; defaut 0x27 */
+static uint8_t s_rx_gain = 0x2F;    /* plafond de gain RX (AGCCTRL2) reglable via l'UI ; defaut 0x27 */
 static uint32_t s_tx_te  = 455;     /* TE d'emission (us) reglable via l'UI ; defaut 455 (Profalux) */
 
 /* Device name / config from NVS */

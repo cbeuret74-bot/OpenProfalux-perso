@@ -214,13 +214,21 @@ static char *cfg_to_json(void) {
 }
 static void save_cfg(void) {
     char *js = cfg_to_json();
-    if (js) {
-        nvs_handle_t h;
-        if (nvs_open("shutters", NVS_READWRITE, &h) == ESP_OK) {
-            nvs_set_str(h, "cfg", js); nvs_commit(h); nvs_close(h);
-        }
-        free(js);
+    if (!js) { ESP_LOGE(TAG, "save_cfg: cfg_to_json KO (heap insuffisant ?)"); return; }
+    nvs_handle_t h;
+    esp_err_t e = nvs_open("shutters", NVS_READWRITE, &h);
+    if (e != ESP_OK) { ESP_LOGE(TAG, "save_cfg: nvs_open KO: %s", esp_err_to_name(e)); free(js); return; }
+    nvs_erase_key(h, "cfg");   /* purge l'ancien format string AVANT d'ecrire -> libere ~3 Ko */
+    e = nvs_set_blob(h, "cfgb", js, strlen(js) + 1);
+    if (e != ESP_OK) {
+        ESP_LOGE(TAG, "save_cfg: nvs_set_blob KO: %s (js=%d o)", esp_err_to_name(e), (int)strlen(js));
+    } else {
+        e = nvs_commit(h);
+        if (e != ESP_OK) ESP_LOGE(TAG, "save_cfg: nvs_commit KO: %s", esp_err_to_name(e));
+        else            ESP_LOGI(TAG, "save_cfg OK : %d o ecrits", (int)strlen(js));
     }
+    nvs_close(h);
+    free(js);
 }
 /* Persistance BORNEE du dataset de trames (hops distincts) en NVS : survit au reboot,
  * mais plafonnee (FRAMES_NVS_MAX) pour ne pas saturer la flash. Le GROS dataset (65536)
@@ -419,10 +427,17 @@ static void load_cfg(void) {
     nvs_handle_t h;
     if (nvs_open("shutters", NVS_READONLY, &h) != ESP_OK) return;
     size_t sz = 0;
-    if (nvs_get_str(h, "cfg", NULL, &sz) != ESP_OK || sz == 0) { nvs_close(h); return; }
-    char *js = malloc(sz);
-    if (!js) { nvs_close(h); return; }
-    nvs_get_str(h, "cfg", js, &sz); nvs_close(h);
+    char *js = NULL;
+    if (nvs_get_blob(h, "cfgb", NULL, &sz) == ESP_OK && sz > 0) {        /* nouveau format blob */
+        js = malloc(sz);
+        if (js) nvs_get_blob(h, "cfgb", js, &sz);
+    } else if (nvs_get_str(h, "cfg", NULL, &sz) == ESP_OK && sz > 0) {   /* ancien format : migration */
+        js = malloc(sz);
+        if (js) nvs_get_str(h, "cfg", js, &sz);
+        ESP_LOGW(TAG, "load_cfg: migration ancien format string -> blob");
+    }
+    nvs_close(h);
+    if (!js) return;
     cJSON *root = cJSON_Parse(js); free(js);
     if (!root) return;
     parse_cfg_json(root);
@@ -433,7 +448,7 @@ static void load_cfg(void) {
 }
 
 /* ── RF ── */
-#define PRESS_REPEATS 10   /* nb de trames par "appui" : le bit-bang peut etre preempte par le WiFi
+#define PRESS_REPEATS 18   /* nb de trames par "appui" : le bit-bang peut etre preempte par le WiFi
                               (trame corrompue) ; plus de repetitions = plus de chances qu'une passe propre */
 /* Emet une RAFALE = 1 appui de telecommande, en UNE session TX (trames dos-a-dos, une seule
  * calibration) via l'arbitre radio. Le moteur part ensuite tout seul jusqu'au STOP/butee. */
@@ -1250,7 +1265,7 @@ static void update_check_task(void *arg) {
     (void)arg;
     vTaskDelay(pdMS_TO_TICKS(30000));   /* laisse WiFi + MQTT monter */
     while (1) {
-        if (s_mqtt_ready) { ota_check_github(); publish_update_state(); pub_flush(); }
+        if (s_mqtt_ready) { publish_update_state(); pub_flush(); }   /* ota_check_github() retire : pic TLS heap + echec cert, inutile */
         vTaskDelay(pdMS_TO_TICKS(6UL * 3600UL * 1000UL));   /* toutes les 6 h */
     }
 }
