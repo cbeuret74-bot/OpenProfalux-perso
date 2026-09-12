@@ -646,6 +646,23 @@ static void announce_extras(void) {
         "\"state_topic\":\"openprofalux/frames/last\",\"value_template\":\"{{ value_json.hop }}\","
         "\"json_attributes_topic\":\"openprofalux/frames/last\",\"icon\":\"mdi:remote\",%s}", dev);
     pub_defer("homeassistant/sensor/openprofalux_last_frame/config", pl, 1, 1);
+    /* Capteur RAM libre (lit le heartbeat existant openprofalux/<device>/state).
+     * Permet de surveiller le heap et de voir venir une saturation. */
+    char st[80]; snprintf(st, sizeof(st), "openprofalux/%s/state", s_device);
+    snprintf(pl, 700,
+        "{\"name\":\"RAM libre\",\"unique_id\":\"openprofalux_free_heap\",\"object_id\":\"openprofalux_free_heap\","
+        "\"state_topic\":\"%s\",\"value_template\":\"{{ value_json.free_heap }}\","
+        "\"unit_of_measurement\":\"o\",\"icon\":\"mdi:memory\",\"entity_category\":\"diagnostic\",%s}",
+        st, dev);
+    pub_defer("homeassistant/sensor/openprofalux_free_heap/config", pl, 1, 1);
+
+    /* Capteur RSSI WiFi (meme heartbeat). */
+    snprintf(pl, 700,
+        "{\"name\":\"Signal WiFi\",\"unique_id\":\"openprofalux_wifi_rssi\",\"object_id\":\"openprofalux_wifi_rssi\","
+        "\"state_topic\":\"%s\",\"value_template\":\"{{ value_json.rssi }}\","
+        "\"unit_of_measurement\":\"dBm\",\"device_class\":\"signal_strength\",\"entity_category\":\"diagnostic\",%s}",
+        st, dev);
+    pub_defer("homeassistant/sensor/openprofalux_wifi_rssi/config", pl, 1, 1);
     free(pl);
     pub_defer("openprofalux/listen/state", s_log_frames ? "ON" : "OFF", 0, 1);
 }
