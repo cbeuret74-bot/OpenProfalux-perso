@@ -74,7 +74,7 @@ static volet_t  s_volets[SH_MAX_VOLETS];
 static int      s_nvolets = 0;
 static remote_t s_remotes[16];
 static int      s_nremotes = 0;
-#define RF_RING 1000          /* trames a l'affichage (paginees) ; l'export /api/frames = l'ensemble du dataset */
+#define RF_RING 200          /* trames a l'affichage (paginees) ; l'export /api/frames = l'ensemble du dataset */
 #define STATUS_RF_SHOW 20     /* nb de trames recentes mises dans /api/status (leger, poll 3 s) ; l'onglet RF pagine via /api/rf */
 static rfrec_t  s_rf[RF_RING];
 static int      s_rfhead = 0;
