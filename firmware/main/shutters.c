@@ -744,7 +744,16 @@ static void tick_task(void *arg) {
         }
         UNLOCK();
         pub_flush();   /* publie les changements de position/etat HORS LOCK */
-        if (s_pos_dirty) { s_pos_dirty = false; LOCK(); save_cfg(); UNLOCK(); }   /* fige la nouvelle position en NVS (retenue au reboot) */
+        /* Position persistee au plus une fois toutes les 30 s : sinon chaque arret de volet
+         * et chaque suivi de vraie telecommande reecrit ~4700 o en NVS (usure flash). */
+        static int64_t s_last_pos_save = 0;
+        if (s_pos_dirty) {
+            int64_t now_us = esp_timer_get_time();
+            if (now_us - s_last_pos_save > 30LL * 1000000) {
+                s_pos_dirty = false; s_last_pos_save = now_us;
+                LOCK(); save_cfg(); UNLOCK();
+            }
+        }
         /* sauvegarde periodique du dataset en NVS (hors LOCK ; menage la flash : ~60 s si modifie) */
         if (++save_ticks * TICK_MS >= 60000) {
             save_ticks = 0;
